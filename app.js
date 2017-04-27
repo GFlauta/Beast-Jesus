@@ -31,17 +31,20 @@ app.set('view engine', 'hbs');
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({
+    extended: false
+}));
 app.use(cookieParser());
 app.use(cookieSession({
-  name: 'session',
-  keys: [key],
-  maxAge: 24*60*60*1000
+    name: 'session',
+    keys: [key],
+    maxAge: 24 * 60 * 60 * 1000
 }))
 app.use(express.static(path.join(__dirname, 'public')));
 
 
 app.use('/', index);
+
 app.use('/pixel_page', pixel_page);
 app.use('/gallery', gallery);
 app.use('/user', user);
@@ -71,8 +74,9 @@ app.post('/signup', function (req, res, next) {
         }).first()
         .then(function (user) {
             if (user) {
-                console.log('I exist!')
-                res.render('pixel_page')
+                alert('User already exists');
+                res.redirect('/');
+
             } else {
                 console.log('I do not exist')
                 bcrypt.hash(req.body.password, 10).then(function (hash) {
@@ -95,10 +99,14 @@ app.post('/signin', function (req, res, next) {
             if (user) {
                 bcrypt.compare(req.body.password, user.password).then(function (data) {
                     if (data) {
-                        console.log(`req.body `,req.body)
-                        req.session.id = user.id
-                        res.redirect('\pixel_page');
-                        console.log(`req.session: `,req.session)
+                        if (user.isAdmin === true) {
+                            res.redirect('/gallery');
+                        } else {
+                            console.log(`req.body `, req.body)
+                            req.session.id = user.id
+                            res.redirect('/pixel_page/' + user.id);
+                            console.log(`req.session: `, req.session)
+                        }
                     } else {
                         res.send('incorrect password')
                     }
@@ -111,28 +119,23 @@ app.post('/signin', function (req, res, next) {
 })
 
 app.post('/addPixelArt', (req, res) => {
-  var data = {};
-  $('.cell').each(function(){
-    var pixClass = this.class;
-    if(pixClass.length > 4) {
-      data[this.id] = pixClass.slice(5);
-    }
-  });
-  req.body.div_data = data;
-  queries.addPixelArt(req.body)
-  .then(data => {
-    res.render('/', {data});
-  });
+    var data = {};
+    $('.cell').each(function () {
+        var pixClass = this.class;
+        if (pixClass.length > 4) {
+            data[this.id] = pixClass.slice(5);
+        }
+    });
+    req.body.div_data = data;
+    queries.addPixelArt(req.body)
+        .then(data => {
+            res.render('/', {
+                data
+            });
+        });
 });
 
 
 
-app.get('/pixel_page', (req, res) => {
-  console.log("hit route")
-  queries.getPainting()
-  .then(data => {
-    console.log(data)
-    res.render('pixel_page', {data})
-  })
-})
 module.exports = app;
+
